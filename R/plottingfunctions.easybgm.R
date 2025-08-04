@@ -17,7 +17,7 @@ get_cluster_colors <- function(easybgm_object) {
     if (n <= 9) {
       colors <- palette.colors(n, "OkabeIto")
       
-    } else{
+    } else {
       # This supports the (uncommon) cases with 10+ clusters
       colors <- random_hcl(n)  
     }
