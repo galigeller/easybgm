@@ -1,3 +1,34 @@
+get_cluster_colors <- function(bgms_object) {
+  random_hcl <- function(n,
+                         c_range = c(55, 80),   
+                         l_range = c(45, 75)) { 
+    h <- runif(n, 0, 360)                     
+    c <- runif(n, c_range[1], c_range[2])
+    l <- runif(n, l_range[1], l_range[2])
+    hcl(h, c, l)
+  }
+  
+  
+  if (!all(is.na(bgms_object$allocations)) && length(unique(bgms_object$allocations)) > 1) {
+    n <- length(unique(bgms_object$allocations))
+    
+    # OkabeIto is a color blind palette, it works with up to 9 colors
+    if (n <= 9) {
+      colors <- palette.colors(n, "OkabeIto")
+      
+    } else {
+      # This supports the (uncommon) cases with 10+ clusters
+      colors <- random_hcl(n)  
+    }
+    
+    return( sapply(bgms_object$allocations, function(X) colors[X]))
+    
+  } else {
+    return(c())
+  }
+  
+}
+
 #' @export
 
 plot_structure_probabilities.bgms <- function(output, as_BF = FALSE, ...) {
@@ -191,6 +222,8 @@ plot_edgeevidence.bgms <- function(output, evidence_thresh = 10, split = FALSE, 
                          graph_color <- args$colors[3], graph_color <- args$colors[1])
   graph_color[graph < (1/evidence_thresh)] <- args$colors[2]
 
+  cluster_colors <- get_cluster_colors(output)
+  
   if (show == "all") {
     if (!split) {
       graph[output$inc_probs <= 1] <- 1
@@ -198,6 +231,7 @@ plot_edgeevidence.bgms <- function(output, evidence_thresh = 10, split = FALSE, 
       colnames(graph) <- args$colnames
       qgraph_plot <- qgraph::qgraph(graph,
                                     edge.color = graph_color,
+                                    color = cluster_colors,
                                     layout = args$layout,# specifies the color of the edges
                                     theme = args$theme,
                                     vsize = args$vsize,
@@ -220,6 +254,7 @@ plot_edgeevidence.bgms <- function(output, evidence_thresh = 10, split = FALSE, 
       colnames(graph_inc) <- colnames(output$parameters)
       qgraph_plot1 <- qgraph::qgraph(graph_inc,
                                      edge.color = graph_color,
+                                     color = cluster_colors,
                                      layout = args$layout,# specifies the color of the edges
                                      theme = args$theme,
                                      vsize = args$vsize,
@@ -238,6 +273,7 @@ plot_edgeevidence.bgms <- function(output, evidence_thresh = 10, split = FALSE, 
       qgraph_plot2 <- qgraph::qgraph(graph_exc,
                                      edge.color = graph_color,
                                      # specifies the color of the edges
+                                     color = cluster_colors,
                                      layout = args$layout,# specifies the color of the edges
                                      theme = args$theme,
                                      vsize = args$vsize,
@@ -265,6 +301,7 @@ plot_edgeevidence.bgms <- function(output, evidence_thresh = 10, split = FALSE, 
     colnames(graph_show) <- colnames(output$parameters)
     qgraph_plot <- qgraph::qgraph(graph_show,
                                   edge.color = graph_color,
+                                  color = cluster_colors,
                                   layout = args$layout,# specifies the color of the edges
                                   theme = args$theme,
                                   vsize = args$vsize,
@@ -325,11 +362,13 @@ plot_network.bgms <- function(output, exc_prob = .5, evidence_thresh = 10, dashe
   inc_probs_m <- output$inc_probs
   graph[inc_probs_m < exc_prob] <- 0
   diag(graph) <- 1
-
+  cluster_colors <- get_cluster_colors(output)
+  
   # Plot
   if(dashed){
     graph_dashed <- ifelse(output$inc_BF < args$evidence_thres, "dashed", "solid")
     qgraph_plot <- qgraph::qgraph(graph, layout = args$layout, lty = graph_dashed,
+                                  color = cluster_colors,
                                   theme = args$theme, vsize = args$vsize,
                                   nodeNames = args$nodeNames,
                                   legend = args$legend,
@@ -338,6 +377,7 @@ plot_network.bgms <- function(output, exc_prob = .5, evidence_thresh = 10, dashe
   } else {
     qgraph_plot <- qgraph::qgraph(graph, theme = args$theme,
                                   layout = args$layout, vsize = args$vsize,
+                                  color = cluster_colors,
                                   nodeNames = args$nodeNames,
                                   legend = args$legend,
                                   label.cex = args$label.cex,
