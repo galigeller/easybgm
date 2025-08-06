@@ -1,34 +1,3 @@
-get_cluster_colors <- function(bgms_object) {
-  random_hcl <- function(n,
-                         c_range = c(55, 80),   
-                         l_range = c(45, 75)) { 
-    h <- runif(n, 0, 360)                     
-    c <- runif(n, c_range[1], c_range[2])
-    l <- runif(n, l_range[1], l_range[2])
-    hcl(h, c, l)
-  }
-  
-  
-  if (!all(is.na(bgms_object$allocations)) && length(unique(bgms_object$allocations)) > 1) {
-    n <- length(unique(bgms_object$allocations))
-    
-    # OkabeIto is a color blind palette, it works with up to 9 colors
-    if (n <= 9) {
-      colors <- palette.colors(n, "OkabeIto")
-      
-    } else {
-      # This supports the (uncommon) cases with 10+ clusters
-      colors <- random_hcl(n)  
-    }
-    
-    return( sapply(bgms_object$allocations, function(X) colors[X]))
-    
-  } else {
-    return(c())
-  }
-  
-}
-
 #' @export
 
 plot_structure_probabilities.bgms <- function(output, as_BF = FALSE, ...) {
@@ -189,6 +158,8 @@ plot_edgeevidence.bgms <- function(output, evidence_thresh = 10, split = FALSE, 
     stop("The plot cannot be obtained for this model fit as no posterior edge inclusion probabilities were obtained. Rerun the model fit and set 'edge_selection = TRUE'.")
   }
 
+  cluster_colors <- get_cluster_colors(output$allocations)
+  
   res <- bgm_extract.package_bgms(fit = output, save = fit_args$save, centrality = FALSE,
                                   type = NULL, not_cont = NULL, data = NULL,
                                   edge_prior = fit_args$edge_prior,
@@ -215,14 +186,12 @@ plot_edgeevidence.bgms <- function(output, evidence_thresh = 10, split = FALSE, 
   args <- set_defaults(default_args, ...)
   graph <- output$inc_BF
   diag(graph) <- 1
-
   # assign a color to each edge (inclusion - blue, exclusion - red, no conclusion - grey)
   graph_color <- graph
   graph_color <-  ifelse(graph < evidence_thresh & graph > 1/evidence_thresh,
                          graph_color <- args$colors[3], graph_color <- args$colors[1])
   graph_color[graph < (1/evidence_thresh)] <- args$colors[2]
-
-  cluster_colors <- get_cluster_colors(output)
+ 
   
   if (show == "all") {
     if (!split) {
@@ -328,6 +297,8 @@ plot_network.bgms <- function(output, exc_prob = .5, evidence_thresh = 10, dashe
     stop("Your version of the package bgms is not supported anymore. Please update.")
   }
 
+  cluster_colors <- get_cluster_colors(output$allocations)
+  
   fit_args <- bgms::extract_arguments(output)
 
   res <- bgm_extract.package_bgms(fit = output, save = fit_args$save, centrality = FALSE,
@@ -362,7 +333,6 @@ plot_network.bgms <- function(output, exc_prob = .5, evidence_thresh = 10, dashe
   inc_probs_m <- output$inc_probs
   graph[inc_probs_m < exc_prob] <- 0
   diag(graph) <- 1
-  cluster_colors <- get_cluster_colors(output)
   
   # Plot
   if(dashed){
